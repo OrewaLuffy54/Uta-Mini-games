@@ -1,4 +1,4 @@
-require('dotenv').config();  // Loads environment variables from the .env file
+require('dotenv').config(); // Loads environment variables from the .env file
 const express = require('express'); // Added Express
 const { Client, GatewayIntentBits, SlashCommandBuilder } = require('discord.js');
 
