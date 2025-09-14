@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
 // ✅ Authorized users (Add your user IDs here)
 const AUTHORIZED_USERS = ['868853678868680734', '1013832671014699130'];
@@ -6,7 +6,7 @@ const AUTHORIZED_USERS = ['868853678868680734', '1013832671014699130'];
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('sudo')
-        .setDescription('Admin Command')
+        .setDescription('Perform an admin action')
         .setDefaultMemberPermissions(0) // ❗ Hide from non-admins by default
         .addStringOption(option =>
             option.setName('action')
@@ -43,7 +43,7 @@ module.exports = {
                 .setRequired(true)
         ),
 
-    async execute(interaction, client) {
+    async execute(interaction) {
         // ✅ Restrict usage to specific authorized users
         if (!AUTHORIZED_USERS.includes(interaction.user.id)) {
             const embed = new EmbedBuilder()
@@ -124,6 +124,25 @@ module.exports = {
                 }
                 if (!found) {
                     embed = new EmbedBuilder().setDescription('❌ Message not found!');
+                }
+
+            } else if (action === 'edit') {
+                let found = false;
+                for (const [, channel] of interaction.client.channels.cache) {
+                    if (channel.isTextBased()) {
+                        try {
+                            const message = await channel.messages.fetch(target);
+                            if (message && message.editable) {
+                                await message.edit(content);
+                                embed = new EmbedBuilder().setDescription('✅ Message edited successfully!');
+                                found = true;
+                                break;
+                            }
+                        } catch {}
+                    }
+                }
+                if (!found) {
+                    embed = new EmbedBuilder().setDescription('❌ Message not found or cannot be edited!');
                 }
 
             } else {
