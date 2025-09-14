@@ -1,9 +1,22 @@
 require('dotenv').config();  // Loads environment variables from the .env file
+const express = require('express'); // Added Express
 const { Client, GatewayIntentBits, SlashCommandBuilder } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
 
-// Create the client with necessary intents
+// Prefix commands
+const coinflipCommand = require('./commands/prefix/coinflip');
+const rolldiceCommand = require('./commands/prefix/rolldice');
+const dailyCommand = require('./commands/prefix/daily');
+const balanceCommand = require('./commands/prefix/balance');
+const helpCommand = require('./commands/prefix/help');
+const giveberriesCommand = require('./commands/prefix/giveberries');
+
+// Slash commands
+const pingSlashCommand = require('./commands/slash/ping');
+const helpSlashCommand = require('./commands/slash/help');
+const sudoSlashCommand = require('./commands/slash/sudo');
+const sendimageSlashCommand = require('./commands/slash/sendimage');
+
+// Create Discord client
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -12,48 +25,26 @@ const client = new Client({
     ],
 });
 
-const token = process.env.BOT_TOKEN;  // Load the bot token from .env
-const prefixes = ['Uta ', 'uta '];    // Prefixes for command detection
+const token = process.env.BOT_TOKEN;
+const prefixes = ['Uta ', 'uta '];
 
-// Load prefix commands
-const coinflipCommand = require('./commands/prefix/coinflip');
-const rolldiceCommand = require('./commands/prefix/rolldice');
-const dailyCommand = require('./commands/prefix/daily');
-const balanceCommand = require('./commands/prefix/balance');
-const helpCommand = require('./commands/prefix/help');
-const giveberriesCommand = require('./commands/prefix/giveberries');  // Add the giveberries command
-
-// Load slash commands
-const pingSlashCommand = require('./commands/slash/ping');
-const helpSlashCommand = require('./commands/slash/help');  // Add help slash command
-const sudoSlashCommand = require('./commands/slash/sudo');  // Added sudo command
-const sendimageSlashCommand = require('./commands/slash/sendimage');  // Added sendimage command
-
+// Event: Ready
 client.once('ready', () => {
     console.log('Uta Mini Games Bot is Online!');
     registerSlashCommands();
 });
 
-// Registering slash commands
+// Register slash commands
 async function registerSlashCommands() {
     const commands = [
-        new SlashCommandBuilder()
-            .setName('ping')
-            .setDescription('Check the bot\'s ping'),
-        new SlashCommandBuilder()
-            .setName('help')
-            .setDescription('List all available commands'),
-        new SlashCommandBuilder()
-            .setName('sudo')
-            .setDescription('Perform an admin action'), // Added sudo command
-        new SlashCommandBuilder()
-            .setName('sendimage')
-            .setDescription('Send an image to a channel')  // Added sendimage command
-    ]
-    .map(command => command.toJSON());
+        new SlashCommandBuilder().setName('ping').setDescription('Check the bot\'s ping'),
+        new SlashCommandBuilder().setName('help').setDescription('List all available commands'),
+        new SlashCommandBuilder().setName('sudo').setDescription('Perform an admin action'),
+        new SlashCommandBuilder().setName('sendimage').setDescription('Send an image to a channel')
+    ].map(command => command.toJSON());
 
     try {
-        await client.application.commands.set(commands);  // Register commands globally
+        await client.application.commands.set(commands);
         console.log('Slash commands registered!');
     } catch (error) {
         console.error('Error registering slash commands:', error);
@@ -67,11 +58,9 @@ client.on('messageCreate', async (message) => {
     const content = message.content;
     const lowerContent = content.toLowerCase();
 
-    // Check which prefix was used
     const usedPrefix = prefixes.find(prefix => lowerContent.startsWith(prefix.toLowerCase()));
     if (!usedPrefix) return;
 
-    // Remove prefix and split args
     const args = content.slice(usedPrefix.length).trim().split(/\s+/);
     const commandName = args.shift().toLowerCase();
 
@@ -82,39 +71,30 @@ client.on('messageCreate', async (message) => {
                 console.log('Coinflip command detected.');
                 await coinflipCommand.execute(message, args);
                 break;
-
             case 'rd':
             case 'rolldice':
                 console.log('Rolldice command detected.');
                 await rolldiceCommand.execute(message, args);
                 break;
-
             case 'daily':
                 console.log('Daily command detected.');
                 await dailyCommand.execute(message, args);
                 break;
-
             case 'balance':
                 console.log('Balance command detected.');
                 await balanceCommand.execute(message, args);
                 break;
-
             case 'giveberries':
                 console.log('Giveberries command detected.');
-                await giveberriesCommand.execute(message, args); // Added the giveberries command
+                await giveberriesCommand.execute(message, args);
                 break;
-
             case 'help':
             case 'h':
                 console.log('Help command detected.');
-                // Pass client to help command if it needs it
                 await helpCommand.execute(message, args, client);
                 break;
-
             default:
-                // Unknown prefix command (optional)
                 message.reply("Unknown command. Use 'Uta help' to see commands.");
-                break;
         }
     } catch (error) {
         console.error(`Error executing ${commandName} command:`, error);
@@ -133,18 +113,31 @@ client.on('interactionCreate', async (interaction) => {
         if (commandName === 'ping') {
             await pingSlashCommand.execute(interaction);
         } else if (commandName === 'help') {
-            await helpSlashCommand.execute(interaction);  // Handle /help command
+            await helpSlashCommand.execute(interaction);
         } else if (commandName === 'sudo') {
-            await sudoSlashCommand.execute(interaction);  // Handle /sudo command
+            await sudoSlashCommand.execute(interaction);
         } else if (commandName === 'sendimage') {
-            await sendimageSlashCommand.execute(interaction);  // Handle /sendimage command
+            await sendimageSlashCommand.execute(interaction);
         }
-        // Add other slash commands here if needed
     } catch (error) {
         console.error(`Error executing slash command ${commandName}:`, error);
         await interaction.reply({ content: 'There was an error executing that command.', ephemeral: true });
     }
 });
 
-// Log in the bot using the token from the .env file
+// Log in to Discord
 client.login(token);
+
+// ----------------------------------
+// KEEP-ALIVE SERVER FOR RENDER
+// ----------------------------------
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('Uta Mini Games Bot is running!');
+});
+
+app.listen(PORT, () => {
+    console.log(`Express server running on port ${PORT}`);
+});
