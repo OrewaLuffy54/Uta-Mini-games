@@ -1,12 +1,13 @@
-const { SlashCommandBuilder, EmbedBuilder, InteractionResponseFlags } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 
-// List of authorized user IDs
+// ✅ Authorized users (Add your user IDs here)
 const AUTHORIZED_USERS = ['868853678868680734', '1013832671014699130'];
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('sudo')
         .setDescription('Admin Command')
+        .setDefaultMemberPermissions(0) // ❗ Hide from non-admins by default
         .addStringOption(option =>
             option.setName('action')
                 .setDescription('Select an action to perform')
@@ -24,6 +25,7 @@ module.exports = {
                     { name: 'timeout', value: 'timeout' },
                     { name: 'kick', value: 'kick' },
                     { name: 'ban', value: 'ban' },
+                    { name: 'purge', value: 'purge' },
                     { name: 'announce', value: 'announce' },
                     { name: 'role', value: 'role' },
                     { name: 'voicekick', value: 'voicekick' },
@@ -32,7 +34,7 @@ module.exports = {
         )
         .addStringOption(option =>
             option.setName('target')
-                .setDescription('Target ID (Channel ID, Message ID, User ID, etc.)')
+                .setDescription('Target ID (Channel ID, Message ID, User ID)')
                 .setRequired(true)
         )
         .addStringOption(option =>
@@ -41,50 +43,99 @@ module.exports = {
                 .setRequired(true)
         ),
 
-    async execute(interaction) {
-        const userId = interaction.user.id;
-        const action = interaction.options.getString('action');
-        const targetRaw = interaction.options.getString('target');
-        const content = interaction.options.getString('content');
-
-        // ✅ SAFETY CHECK: Avoid .replace on null
-        if (!targetRaw) {
-            return interaction.reply({
-                content: '❌ Target ID is missing.',
-                flags: InteractionResponseFlags.Ephemeral
-            });
-        }
-
-        const target = targetRaw.replace(/[<#@!>]/g, '');
-
-        // Check if user is authorized
-        if (!AUTHORIZED_USERS.includes(userId)) {
+    async execute(interaction, client) {
+        // ✅ Restrict usage to specific authorized users
+        if (!AUTHORIZED_USERS.includes(interaction.user.id)) {
             const embed = new EmbedBuilder()
                 .setDescription('❌ You do not have permission to use this command!')
                 .setColor('#FF0000');
-
-            return interaction.reply({
-                embeds: [embed],
-                flags: InteractionResponseFlags.Ephemeral
-            });
+            return interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
-        // ✅ Replace deprecated ephemeral usage
-        await interaction.deferReply({ flags: InteractionResponseFlags.Ephemeral });
+        await interaction.deferReply({ ephemeral: true });
 
-        let embed;
+        const action = interaction.options.getString('action');
+        const targetRaw = interaction.options.getString('target');
+        const content = interaction.options.getString('content');
+        const target = targetRaw.replace(/[<#@!>]/g, '');
+
+        console.log('--- SUDO COMMAND ---');
+        console.log('User:', interaction.user.tag, `(${interaction.user.id})`);
+        console.log('Action:', action, 'Target:', target, 'Content:', content);
 
         try {
-            // [Rest of your long command logic remains unchanged]
-            // You don't need to change the rest unless more errors occur.
+            let embed;
 
-            // At the very end:
-            await interaction.editReply({ embeds: [embed], flags: InteractionResponseFlags.Ephemeral });
+            // Action-based commands
+            if (action === 'msg') {
+                const channel = await interaction.client.channels.fetch(target);
+                if (!channel || !channel.isTextBased()) {
+                    embed = new EmbedBuilder().setDescription('❌ Channel not found or not text‑based!');
+                } else {
+                    await channel.send(content);
+                    embed = new EmbedBuilder().setDescription('✅ Message sent successfully!');
+                }
+            } else if (action === 'react') {
+                let found = false;
+                for (const [, channel] of interaction.client.channels.cache) {
+                    if (channel.isTextBased()) {
+                        try {
+                            const message = await channel.messages.fetch(target);
+                            if (message) {
+                                await message.react(content);
+                                embed = new EmbedBuilder().setDescription('✅ Reaction added successfully!');
+                                found = true;
+                                break;
+                            }
+                        } catch {}
+                    }
+                }
+                if (!found) {
+                    embed = new EmbedBuilder().setDescription('❌ Message not found in any accessible channel!');
+                }
+
+            } else if (action === 'dm') {
+                try {
+                    const user = await interaction.client.users.fetch(target);
+                    if (!user) {
+                        embed = new EmbedBuilder().setDescription('❌ User not found!');
+                    } else {
+                        await user.send(content);
+                        embed = new EmbedBuilder().setDescription(`✅ DM sent to ${user.tag}`);
+                    }
+                } catch {
+                    embed = new EmbedBuilder().setDescription('❌ Could not send DM (maybe DMs disabled?)');
+                }
+
+            } else if (action === 'reply') {
+                let found = false;
+                for (const [, channel] of interaction.client.channels.cache) {
+                    if (channel.isTextBased()) {
+                        try {
+                            const message = await channel.messages.fetch(target);
+                            if (message) {
+                                await message.reply(content);
+                                embed = new EmbedBuilder().setDescription('✅ Reply sent successfully!');
+                                found = true;
+                                break;
+                            }
+                        } catch {}
+                    }
+                }
+                if (!found) {
+                    embed = new EmbedBuilder().setDescription('❌ Message not found!');
+                }
+
+            } else {
+                embed = new EmbedBuilder().setDescription('❌ Invalid action!');
+            }
+
+            await interaction.editReply({ embeds: [embed], ephemeral: true });
 
         } catch (error) {
             console.error('🛑 Sudo command error:', error);
-            const errorEmbed = new EmbedBuilder().setDescription('❌ An error occurred while executing the command!');
-            await interaction.editReply({ embeds: [errorEmbed], flags: InteractionResponseFlags.Ephemeral });
+            const embed = new EmbedBuilder().setDescription('❌ An error occurred while executing the command!');
+            await interaction.editReply({ embeds: [embed], ephemeral: true });
         }
     }
 };
