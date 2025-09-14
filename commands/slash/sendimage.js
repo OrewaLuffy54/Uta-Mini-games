@@ -22,8 +22,8 @@ module.exports = {
 
         const imageUrl = interaction.options.getString('url');
 
-        // Basic validation for image URL
-        if (!imageUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+        // Null check & validate image URL extension
+        if (!imageUrl || !imageUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
             return interaction.reply({
                 content: '❌ Please provide a valid image URL ending with jpg, jpeg, png, gif, or webp.',
                 ephemeral: true,
@@ -33,7 +33,10 @@ module.exports = {
         await interaction.deferReply({ ephemeral: true });
 
         try {
+            // Send image publicly in the channel
             await interaction.channel.send({ files: [imageUrl] });
+
+            // Confirm to owner privately
             await interaction.editReply({ content: '✅ Image sent publicly!', ephemeral: true });
         } catch (error) {
             console.error('Error sending image:', error);
