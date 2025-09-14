@@ -22,8 +22,18 @@ module.exports = {
 
         const imageUrl = interaction.options.getString('url');
 
-        // Null check & validate image URL extension
-        if (!imageUrl || !imageUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+        if (!imageUrl) {
+            return interaction.reply({
+                content: '❌ Please provide an image URL.',
+                ephemeral: true,
+            });
+        }
+
+        // Extract URL without query parameters for extension check
+        const urlWithoutQuery = imageUrl.split('?')[0];
+
+        // Validate image URL extension ignoring query parameters
+        if (!urlWithoutQuery.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
             return interaction.reply({
                 content: '❌ Please provide a valid image URL ending with jpg, jpeg, png, gif, or webp.',
                 ephemeral: true,
