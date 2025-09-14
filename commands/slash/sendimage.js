@@ -1,8 +1,7 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const path = require('path');
 
-// Replace these with the Discord User IDs of all owners
-const OWNER_IDS = ['868853678868680734', '1013832671014699130']; // Add your additional owner IDs here
+const OWNER_IDS = ['868853678868680734', '1013832671014699130']; // Your owners
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -10,27 +9,27 @@ module.exports = {
         .setDescription('Send an image from the bot\'s local storage'),
 
     async execute(interaction) {
-        // Check if the user is one of the owners
         if (!OWNER_IDS.includes(interaction.user.id)) {
             return interaction.reply({
                 content: '❌ You do not have permission to use this command.',
-                ephemeral: true,  // Makes it visible only to the user
+                ephemeral: true,
             });
         }
 
-        // Path to the image file
-        const imagePath = path.join(__dirname, '../../images/image1.jpg');  // Adjust this to your image file location
+        const imagePath = path.join(__dirname, '../../images/image1.jpg');
+
+        // Defer reply silently so owner sees nothing public
+        await interaction.deferReply({ ephemeral: true });
 
         try {
-            // Send only the image without a message
-            await interaction.reply({
-                files: [imagePath],  // Sends the image as an attachment
-            });
+            // Send image publicly in the channel
+            await interaction.channel.send({ files: [imagePath] });
+
+            // Confirm to owner privately (or keep it blank)
+            await interaction.editReply({ content: '✅ Image sent!', ephemeral: true });
         } catch (error) {
             console.error('Error sending image:', error);
-            await interaction.reply({ content: '❌ An error occurred while sending the image.', ephemeral: true });
+            await interaction.editReply({ content: '❌ Failed to send image.', ephemeral: true });
         }
     }
 };
-
-
