@@ -1,18 +1,14 @@
-// src/events/messageCreate.js
+// /events/messageCreate.js
 
 module.exports = (client) => {
-    // Event listener for 'messageCreate'
     client.on('messageCreate', (message) => {
-        // Ignore messages from the bot itself
-        if (message.author.bot) return;
+        // Your event handling logic here
+        if (message.author.bot) return; // Ignore bot messages
+        console.log('New message:', message.content);
 
-        console.log('New message received:', message.content);
-
-        // Example of a command trigger
-        if (message.content.startsWith('!hello')) {
-            message.channel.send('Hello, world!');
+        // Example: Respond to a simple command
+        if (message.content === '!ping') {
+            message.channel.send('Pong!');
         }
-
-        // You can add more custom logic here
     });
 };
