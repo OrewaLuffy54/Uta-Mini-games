@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, InteractionResponseFlags } = require('discord.js');
 
 // ✅ Authorized users (Add your user IDs here)
 const AUTHORIZED_USERS = ['868853678868680734', '1013832671014699130'];
@@ -52,18 +52,25 @@ module.exports = {
             return interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
-        await interaction.deferReply({ ephemeral: true });
-
-        const action = interaction.options.getString('action');
+        // Check if target is valid
         const targetRaw = interaction.options.getString('target');
-        const content = interaction.options.getString('content');
+        if (!targetRaw) {
+            return interaction.reply({ content: '❌ Target is missing or invalid.', ephemeral: true });
+        }
         const target = targetRaw.replace(/[<#@!>]/g, '');
 
-        console.log('--- SUDO COMMAND ---');
-        console.log('User:', interaction.user.tag, `(${interaction.user.id})`);
-        console.log('Action:', action, 'Target:', target, 'Content:', content);
-
+        // Ensure that interaction is not already replied to or deferred
         try {
+            // Defer reply first to avoid errors later
+            await interaction.deferReply({ flags: InteractionResponseFlags.Ephemeral });
+
+            const action = interaction.options.getString('action');
+            const content = interaction.options.getString('content');
+
+            console.log('--- SUDO COMMAND ---');
+            console.log('User:', interaction.user.tag, `(${interaction.user.id})`);
+            console.log('Action:', action, 'Target:', target, 'Content:', content);
+
             let embed;
 
             // Action-based commands
@@ -105,44 +112,6 @@ module.exports = {
                     }
                 } catch {
                     embed = new EmbedBuilder().setDescription('❌ Could not send DM (maybe DMs disabled?)');
-                }
-
-            } else if (action === 'reply') {
-                let found = false;
-                for (const [, channel] of interaction.client.channels.cache) {
-                    if (channel.isTextBased()) {
-                        try {
-                            const message = await channel.messages.fetch(target);
-                            if (message) {
-                                await message.reply(content);
-                                embed = new EmbedBuilder().setDescription('✅ Reply sent successfully!');
-                                found = true;
-                                break;
-                            }
-                        } catch {}
-                    }
-                }
-                if (!found) {
-                    embed = new EmbedBuilder().setDescription('❌ Message not found!');
-                }
-
-            } else if (action === 'edit') {
-                let found = false;
-                for (const [, channel] of interaction.client.channels.cache) {
-                    if (channel.isTextBased()) {
-                        try {
-                            const message = await channel.messages.fetch(target);
-                            if (message && message.editable) {
-                                await message.edit(content);
-                                embed = new EmbedBuilder().setDescription('✅ Message edited successfully!');
-                                found = true;
-                                break;
-                            }
-                        } catch {}
-                    }
-                }
-                if (!found) {
-                    embed = new EmbedBuilder().setDescription('❌ Message not found or cannot be edited!');
                 }
 
             } else {
