@@ -1,4 +1,4 @@
-require('dotenv').config(); // Loads environment variables from the .env file
+require('dotenv').config();  // Loads environment variables from the .env file
 const express = require('express'); // Added Express
 const { Client, GatewayIntentBits, SlashCommandBuilder } = require('discord.js');
 
@@ -27,12 +27,11 @@ const client = new Client({
 
 const token = process.env.BOT_TOKEN;
 const prefixes = ['Uta ', 'uta '];
-const guildId = process.env.GUILD_ID; // Ensure this is in .env if using guild-specific commands
 
 // Event: Ready
 client.once('ready', () => {
     console.log('Uta Mini Games Bot is Online!');
-    registerSlashCommands(); // Register commands when the bot is ready
+    registerSlashCommands();
 });
 
 // Register slash commands
@@ -45,8 +44,7 @@ async function registerSlashCommands() {
     ].map(command => command.toJSON());
 
     try {
-        // Registering guild-specific commands
-        await client.application.commands.set(commands, guildId); // Register for a specific guild
+        await client.application.commands.set(commands);
         console.log('Slash commands registered!');
     } catch (error) {
         console.error('Error registering slash commands:', error);
@@ -67,7 +65,6 @@ client.on('messageCreate', async (message) => {
     const commandName = args.shift().toLowerCase();
 
     try {
-        // Check if the command module exists before calling execute
         switch (commandName) {
             case 'cf':
             case 'coinflip':
@@ -113,21 +110,14 @@ client.on('interactionCreate', async (interaction) => {
     console.log(`Slash command received: ${commandName}`);
 
     try {
-        switch (commandName) {
-            case 'ping':
-                await pingSlashCommand.execute(interaction);
-                break;
-            case 'help':
-                await helpSlashCommand.execute(interaction);
-                break;
-            case 'sudo':
-                await sudoSlashCommand.execute(interaction);
-                break;
-            case 'sendimage':
-                await sendimageSlashCommand.execute(interaction);
-                break;
-            default:
-                await interaction.reply({ content: 'Command not recognized.', ephemeral: true });
+        if (commandName === 'ping') {
+            await pingSlashCommand.execute(interaction);
+        } else if (commandName === 'help') {
+            await helpSlashCommand.execute(interaction);
+        } else if (commandName === 'sudo') {
+            await sudoSlashCommand.execute(interaction);
+        } else if (commandName === 'sendimage') {
+            await sendimageSlashCommand.execute(interaction);
         }
     } catch (error) {
         console.error(`Error executing slash command ${commandName}:`, error);
