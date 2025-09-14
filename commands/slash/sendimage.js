@@ -2,7 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const path = require('path');
 
 // Replace these with the Discord User IDs of all owners
-const OWNER_IDS = ['123456789012345678', '1013832671014699130']; // Add your additional owner IDs here
+const OWNER_IDS = ['868853678868680734', '1013832671014699130']; // Add your additional owner IDs here
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -32,4 +32,5 @@ module.exports = {
         }
     }
 };
+
 
